@@ -1,0 +1,76 @@
+---
+title: "Prediction of Exercise Quality - Coursera Practical Machine Learning Final Project"
+author: "cdo03c"
+date: "Tuesday, September 15, 2015"
+output: html_document
+---
+
+###Synopsis
+
+The BLANK machine learning algorithm was used to predict the "manner" in which an exercise was performed within five different classes. Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).
+
+The prediction was built from and applied to training and test datasets from the following study:
+
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+###Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+
+###Data Sources
+
+The training data for this project are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project comes from this original source: http://groupware.les.inf.puc-rio.br/har.
+
+Note: The following code loads the data directly from the URL provided, so that you are not required to download the file to your environment.
+
+###Load Libraries and Ingest Data
+
+The following R packages are used in this analysis: caret.  The random seed is set to 1122.
+
+```{r, echo = FALSE}
+library(caret)
+set.seed(1122)
+```
+
+For this analysis the training and test datasets are directly downloaded from the online repository and loaded into a training and testing variable.
+
+```{r, echo=FALSE}
+##Downloads Weight Lifting Exercise Dataset file if it has not already been downloaded and redirects the working directory to where the data is stored.
+if(!file.exists("./data")){dir.create("./data")}
+if(!file.exists("./data/pml-training.csv")){download.file(url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "./data/pml-training.csv")}
+if(!file.exists("./data/pml-testing.csv")){download.file(url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile = "./data/pml-testing.csv")}
+WD <- getwd()
+setwd("./data")
+
+training <- read.csv(file = "./pml-training.csv",  na.strings = c('NA','#DIV/0!',''))
+testing <- read.csv(file = "./pml-testing.csv",  na.strings = c('NA','#DIV/0!',''))
+```
+
+###Cross Validation
+
+The number of variable is the training set is reduced by removing the columns that have missing data and the first seven columns which are identificaiton variables and not relevant to the prediction.  Then the training set is further split into a newtraining and newtesting variables for cross validation of the model.
+```{r}
+whereNA <- vector(mode = "logical", length = ncol(training))
+for(i in ncol(training)){
+    whereNA[i] = (sum(is.na(training[,i])) >1) 
+}
+training <- training[,c(whereNA==F)]
+training <- training[,-c(1:7)]
+
+inTrain = createDataPartition(training$classe, p = 3/4)[[1]]
+newtraining = training[ inTrain,]
+newtesting = training[-inTrain,]
+```
+
+###Summary of the Data
+
+###Conclusion
