@@ -1,0 +1,105 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "CDO03C"
+date: "September 22, 2015"
+output: html_document
+---
+###Summary
+
+In order to predict how well a person performs arm curls as part of the Coursera Practical Machine Learning Course a random forset model was built from a traing set and achieved 99% accuracy on a valdiation test set.  Random forest is a powerful model that uses SOMETHING and was a good fit for the data BECAUSE
+
+###Background
+
+Personal recording devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal was to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways and those levels were used to predict new how new indivudals performs the actiivty.
+
+The data was obtained from the following source:
+
+Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6.
+
+Read more: http://groupware.les.inf.puc-rio.br/har#ixzz3mqxIsqId
+. 
+
+###Loading Data
+
+The training data for this project are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project comes from this original source: http://groupware.les.inf.puc-rio.br/har.
+
+Note: The following code loads the data directly from the URL provided, so that you are not required to download the file to your environment.
+
+
+```{r}
+##Downloads Weight Lifting Exercise Dataset file if it has not already been downloaded and redirects the working directory to where the data is stored.
+if(!file.exists("./data")){dir.create("./data")}
+if(!file.exists("./data/pml-training.csv")){download.file(url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "./data/pml-training.csv")}
+if(!file.exists("./data/pml-testing.csv")){download.file(url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", destfile = "./data/pml-testing.csv")}
+
+training <- read.csv("./data/pml-training.csv", na.strings = c('NA','#DIV/0!',''))
+testing <- read.csv("./data/pml-testing.csv", na.strings = c('NA','#DIV/0!',''))
+```
+
+
+###Data preparation
+
+The data needs to be prepared before fitting a model.  All columns that have all NA values (100 in total) are removed from the training and test data sets.  Also, the first seven columns are removed from both datasets because these are identification variables that will not be included in the model.  Lastly, the training dataset is split 60/40 into training and a validation test set so we can evaluate the accuracy of the model before applying the model to the test set.
+
+```{r}
+library(caret, quietly=TRUE)
+set.seed(2233)
+
+training <- training[, colSums(is.na(training)) == 0]
+testing <- testing[, colSums(is.na(testing)) == 0]
+training <- training[,-c(1:7)]
+testing <- testing[,-c(1:7)]
+
+inTrain <- createDataPartition(y=training$classe, p=0.6, list=FALSE)
+data_train <- training[inTrain, ]
+data_val <- training[-inTrain, ]
+```
+
+###Model Building
+
+A randome forest model was built off the remaining variables in the training data set against the variable 'classe' which is the classifier for how well the exercise was performed.
+
+```{r}
+library(randomForest)
+rfmod <- train(classe ~ .,
+                data = data_train, 
+                method = 'rf', 
+                trControl = trainControl(method = "cv", 
+                                         number = 4, 
+                                         allowParallel = TRUE, 
+                                         verboseIter = TRUE))
+```
+
+###Model Evaluation
+
+The random forest model is then tested against the validation data set and evaluated for accuracy.  The confusion matrix reveals that the model is 99% accurate and a good fit.  The out of sample error is 0.0076. The out of sample error is calculated as 1 - accuracy for predictions made against the cross-validation set. Considering that the test set is a sample size of 20, an accuracy rate well above 99% is sufficient to expect that few or none of the test samples will be mis-classified.
+
+```{r}
+valpred <- predict(rfmod, data_val)
+confusionMatrix(valpred, data_val$classe)
+```
+
+###Final Prediction
+
+Lastly, the random forest model is applied to the test data set and the answers are compiled into small text files for loading onto the Coursera website.
+
+```{r}
+testpred <- predict(rfmod, testing)
+
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(testpred)
+```
